@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-const DEBUG = false;
-
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 Components.utils.import('resource://gre/modules/XPCOMUtils.jsm');
@@ -24,7 +22,9 @@ const ConsoleService = Cc['@mozilla.org/consoleservice;1']
 const LoginManager = Cc['@mozilla.org/login-manager;1']
 		.getService(Ci.nsILoginManager);
 
-const PAIRS_PREFIX     = 'extensions.auto-password-registerer@clear-code.com.';
+const PREFIX           = 'extensions.auto-password-registerer@clear-code.com.login.';
+const DEBUG_KEY        = 'extensions.auto-password-registerer@clear-code.com.debug';
+const LOGIN_PREFIX     = 'extensions.auto-password-registerer@clear-code.com.';
 const HOSTNAME_SUFFIX  = '.hostname';
 const USERNAME_SUFFIX  = '.username';
 const REALM_SUFFIX     = '.httpRealm';
@@ -34,12 +34,14 @@ const EXCLUSIVE_SUFFIX = '.exclusive';
 
 const HOSTNAME_SUFFIX_MATCHER = new RegExp(HOSTNAME_SUFFIX.replace(/\./g, '\\.') + '$');
 
+var DEBUG = false;
+
 function mydump()
 {
+	if (!DEBUG)
+		return;
 	var str = Array.slice(arguments).join('\n');
     ConsoleService.logStringMessage('[auto-password-registerer] ' + str);
-	if (!DEBUG)
-	  return;
 	if (str.charAt(str.length-1) != '\n')
 	  str += '\n';
 	dump(str);
@@ -74,6 +76,7 @@ AutoPasswordRegistererStartupService.prototype = {
 
 	init : function() 
 	{
+		DEBUG = this.getBoolPref(DEBUG_KEY);
 		this.savePasswords();
 	},
 
@@ -98,7 +101,7 @@ AutoPasswordRegistererStartupService.prototype = {
 		}
 
 		var now = Date.now();
-		Pref.getChildList(PAIRS_PREFIX, {}).forEach(function(aPref) {
+		Pref.getChildList(LOGIN_PREFIX, {}).forEach(function(aPref) {
 			if (!HOSTNAME_SUFFIX_MATCHER.test(aPref))
 				return;
 			try {
