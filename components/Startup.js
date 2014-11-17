@@ -22,9 +22,9 @@ const ConsoleService = Cc['@mozilla.org/consoleservice;1']
 const LoginManager = Cc['@mozilla.org/login-manager;1']
 		.getService(Ci.nsILoginManager);
 
-const PREFIX           = 'extensions.auto-password-registerer@clear-code.com.login.';
-const DEBUG_KEY        = 'extensions.auto-password-registerer@clear-code.com.debug';
-const LOGIN_PREFIX     = 'extensions.auto-password-registerer@clear-code.com.';
+const PREFIX           = 'extensions.auto-password-registerer@clear-code.com.';
+const DEBUG_KEY        = PREFIX + 'debug';
+const LOGIN_PREFIX     = PREFIX + 'login.';
 const HOSTNAME_SUFFIX  = '.hostname';
 const USERNAME_SUFFIX  = '.username';
 const REALM_SUFFIX     = '.httpRealm';
