@@ -30,6 +30,7 @@ const USERNAME_SUFFIX  = '.username';
 const REALM_SUFFIX     = '.httpRealm';
 const PASSWORD_SUFFIX  = '.password';
 const TIMESTAMP_SUFFIX = '.lastRegisterationTimestamp';
+const EXCLUSIVE_SUFFIX = '.exclusive';
 
 const HOSTNAME_SUFFIX_MATCHER = new RegExp(HOSTNAME_SUFFIX.replace(/\./g, '\\.') + '$');
 
@@ -81,12 +82,16 @@ AutoPasswordRegistererStartupService.prototype = {
 		mydump('savePasswords');
 
 		var savedPasswords = {};
-		var 
+		var savedSites = {};
 		try {
 			let loginInfos = LoginManager.getAllLogins({});
 			loginInfos.forEach(function(aInfo) {
 				var key = this.keyFromLoginInfo(aInfo);
 				savedPasswords[key] = aInfo;
+
+				if (!(aInfo.hostname in savedSites))
+					savedSites[aInfo.hostname] = {};
+				savedSites[aInfo.hostname][aInfo.username] = aInfo;
 			}, this);
 		}
 		catch(e) {
@@ -105,14 +110,19 @@ AutoPasswordRegistererStartupService.prototype = {
 				let httpRealmKey = hostnameKey.replace(HOSTNAME_SUFFIX_MATCHER, REALM_SUFFIX);
 				let passwordKey  = hostnameKey.replace(HOSTNAME_SUFFIX_MATCHER, PASSWORD_SUFFIX);
 				let timestampKey = hostnameKey.replace(HOSTNAME_SUFFIX_MATCHER, TIMESTAMP_SUFFIX);
+				let exclusiveKey = hostnameKey.replace(HOSTNAME_SUFFIX_MATCHER, EXCLUSIVE_SUFFIX);
 
 				let hostname = this.getStringPref(hostnameKey, '');
+				let timestamp = this.getStringPref(timestampKey, '');
+				let username  = this.getStringPref(usernameKey, '');
+				let httpRealm = this.getStringPref(httpRealmKey, '');
+				let password  = this.getStringPref(passwordKey, '');
+
 				if (!hostname)
 					return;
 
 				mydump('password info for '+hostname+' is detected.');
 
-				let timestamp = this.getStringPref(timestampKey, '');
 				if (timestamp) {
 					timestamp = parseFloat(timestamp);
 					if (!isNaN(timestamp) && now > timestamp) {
@@ -121,14 +131,26 @@ AutoPasswordRegistererStartupService.prototype = {
 					}
 				}
 
-				let username  = this.getStringPref(usernameKey, '');
-				let httpRealm = this.getStringPref(httpRealmKey, '');
-				let password  = this.getStringPref(passwordKey, '');
+				if (this.getBoolPref(exclusiveKey) &&
+					hostname in savedSites) {
+					mydump('removing old login informations...');
+					Object.keys(savedSites[hostname]).forEach(function(aUsername) {
+						if (aUsername == username)
+							return;
+						mydump('removing old login information for '+aUsername+'...');
+						var info = savedSites[hostname][aUsername];
+						var key = this.keyFromLoginInfo(info);
+						LoginManager.removeLogin(info);
+						delete savedSites[hostname][aUsername];
+						delete savedPasswords[key];
+					}, this);
+					mydump('done.');
+				}
+
 				let key = JSON.stringify({
 					hostname: hostname,
 					username: username
 				});
-
 				if (key in savedPasswords) {
 					let oldLogin = savedPasswords[key];
 					if (username  == oldLogin.username &&
@@ -142,14 +164,15 @@ AutoPasswordRegistererStartupService.prototype = {
 									.createInstance(Ci.nsILoginInfo);
 					newLogin.init(
 						hostname,
-						oldLogin.formSubmitURL,
+						oldLogin.formSubmitURL || null,
 						httpRealm,
 						username,
 						password,
-						oldLogin.usernameField,
-						oldLogin.passwordField
+						oldLogin.usernameField || '',
+						oldLogin.passwordField || ''
 					);
 					LoginManager.modifyLogin(oldLogin, newLogin);
+					savedSites[hostname][username] = newLogin;
 					this.setStringPref(timestampKey, now);
 					mydump('done.');
 				}
@@ -167,6 +190,7 @@ AutoPasswordRegistererStartupService.prototype = {
 						''
 					);
 					LoginManager.addLogin(newLogin);
+					savedSites[hostname][username] = newLogin;
 					this.setStringPref(timestampKey, now);
 					mydump('done.');
 				}
@@ -175,6 +199,16 @@ AutoPasswordRegistererStartupService.prototype = {
 				mydump(aPref+'\n'+e);
 			}
 		}, this);
+	},
+
+	getBoolPref : function(aKey)
+	{
+		try {
+			return Pref.getBoolPref(aKey);
+		}
+		catch(e) {
+		}
+		return false;
 	},
 
 	getStringPref : function(aKey, aDefault)
