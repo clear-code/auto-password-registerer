@@ -162,16 +162,21 @@ AutoPasswordRegistererStartupService.prototype = {
 					mydump('updating login information...');
 					let newLogin = Cc['@mozilla.org/login-manager/loginInfo;1']
 									.createInstance(Ci.nsILoginInfo);
+					let formSubmitURL = oldLogin.formSubmitURL;
+					if (!httpRealm && !formSubmitURL)
+						formSubmitURL = hostname;
 					newLogin.init(
 						hostname,
-						oldLogin.formSubmitURL || null,
-						httpRealm,
+						formSubmitURL || null,
+						httpRealm || null,
 						username,
 						password,
 						oldLogin.usernameField || '',
 						oldLogin.passwordField || ''
 					);
 					LoginManager.modifyLogin(oldLogin, newLogin);
+					if (!(hostname in savedSites))
+						savedSites[hostname] = {};
 					savedSites[hostname][username] = newLogin;
 					this.setStringPref(timestampKey, now);
 					mydump('done.');
@@ -180,16 +185,21 @@ AutoPasswordRegistererStartupService.prototype = {
 					mydump('saving new login information...');
 					let newLogin = Cc['@mozilla.org/login-manager/loginInfo;1']
 									.createInstance(Ci.nsILoginInfo);
+					let formSubmitURL = null;
+					if (!httpRealm)
+						formSubmitURL = hostname;
 					newLogin.init(
 						hostname,
-						null,
-						httpRealm,
+						formSubmitURL || null,
+						httpRealm || null,
 						username,
 						password,
 						'',
 						''
 					);
 					LoginManager.addLogin(newLogin);
+					if (!(hostname in savedSites))
+						savedSites[hostname] = {};
 					savedSites[hostname][username] = newLogin;
 					this.setStringPref(timestampKey, now);
 					mydump('done.');
