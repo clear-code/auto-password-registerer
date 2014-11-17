@@ -25,3 +25,7 @@ If you don't want to store multiple login informations for a host, define an ext
          true);
 
 Then, all other login informations will be removed automatically.
+
+Already-registered login information won't be registered again, even if you remove the stored password by hand.
+To register it again, you have to clear a preference `extensions.auto-password-registerer@clear-code.com.login.(unique key).lastRegisterationTimestamp`.
+
