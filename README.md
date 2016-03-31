@@ -1,6 +1,8 @@
 auto-password-registerer
 ========================
 
+Download link: https://addons.mozilla.org/firefox/addon/auto-password-registerer/
+
 Registers given passwords to Firefox/Thunderbird's password manager automatically.
 
 ## Usage
