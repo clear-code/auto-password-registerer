@@ -5,7 +5,7 @@
   <RDF:Description RDF:about="urn:mozilla:install-manifest"
                    em:id="auto-password-registerer@clear-code.com"
                    em:name="Auto Password Registerer"
-                   em:version="0.1"
+                   em:version="1.0"
                    em:description="Registers given passwords to Firefox/Thunderbird's password manager automatically."
                    em:creator="ClearCode Inc."
                    em:homepageURL="http://www.clear-code.com/">
